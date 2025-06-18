@@ -1,0 +1,242 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>نظام مراقبة استهلاك الكهرباء</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link href="https://fonts.googleapis.com/css2?family=Tajawal:wght@400;500;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="style.css">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-app.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-auth.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-database.js"></script>
+</head>
+<body>
+    <div class="app-container">
+        <!-- شريط التنقل -->
+        <nav class="navbar">
+            <div class="navbar-brand">
+                <i class="fas fa-bolt logo-icon"></i>
+                <span>نظام الطاقة</span>
+            </div>
+            <div class="navbar-menu">
+                <a href="#" class="active"><i class="fas fa-home"></i> الرئيسية</a>
+                <a href="#"><i class="fas fa-chart-line"></i> التقارير</a>
+                <a href="#"><i class="fas fa-cog"></i> الإعدادات</a>
+                <div class="user-profile">
+                    <img src="assets/images/user.png" alt="صورة المستخدم">
+                    <span>عبدالرحمني</span>
+                    <i class="fas fa-chevron-down"></i>
+                </div>
+            </div>
+        </nav>
+
+        <!-- المحتوى الرئيسي -->
+        <main class="main-content">
+            <div class="header-section">
+                <h1><i class="fas fa-calculator"></i> حاسبة استهلاك الكهرباء</h1>
+                <div class="date-display" id="current-date"></div>
+            </div>
+
+            <div class="grid-container">
+                <!-- بطاقة الحاسبة -->
+                <div class="card calculator-card">
+                    <div class="card-header">
+                        <h2><i class="fas fa-calculator"></i> أدخل بيانات الاستهلاك</h2>
+                    </div>
+                    <div class="card-body">
+                        <div class="form-grid">
+                            <div class="form-group">
+                                <label for="appliance"><i class="fas fa-plug"></i> نوع الجهاز</label>
+                                <select id="appliance" class="form-control">
+                                    <option value="">-- اختر جهاز --</option>
+                                    <option value="fridge">ثلاجة</option>
+                                    <option value="ac">مكيف هواء</option>
+                                    <option value="tv">تلفزيون</option>
+                                    <option value="washing">غسالة</option>
+                                    <option value="heater">سخان ماء</option>
+                                    <option value="light">إضاءة</option>
+                                    <option value="other">أخرى</option>
+                                </select>
+                            </div>
+
+                            <div class="form-group">
+                                <label for="wattage"><i class="fas fa-bolt"></i> القدرة (وات)</label>
+                                <input type="number" id="wattage" class="form-control" placeholder="أدخل قدرة الجهاز">
+                            </div>
+
+                            <div class="form-group">
+                                <label for="hours"><i class="far fa-clock"></i> ساعات التشغيل</label>
+                                <input type="number" id="hours" class="form-control" placeholder="ساعات يومياً">
+                            </div>
+
+                            <div class="form-group">
+                                <label for="days"><i class="far fa-calendar-alt"></i> عدد الأيام</label>
+                                <input type="number" id="days" class="form-control" value="30">
+                            </div>
+
+                            <div class="form-group">
+                                <label for="rate"><i class="fas fa-money-bill-wave"></i> سعر الكيلوواط</label>
+                                <input type="number" id="rate" class="form-control" value="0.18" step="0.01">
+                            </div>
+
+                            <div class="form-group full-width">
+                                <label for="notes"><i class="far fa-sticky-note"></i> ملاحظات</label>
+                                <textarea id="notes" class="form-control" rows="2" placeholder="أي ملاحظات إضافية"></textarea>
+                            </div>
+                        </div>
+
+                        <div class="button-group">
+                            <button id="calculate" class="btn btn-primary">
+                                <i class="fas fa-calculator"></i> احسب
+                            </button>
+                            <button id="save" class="btn btn-success">
+                                <i class="far fa-save"></i> حفظ
+                            </button>
+                            <button id="reset" class="btn btn-danger">
+                                <i class="fas fa-undo"></i> إعادة تعيين
+                            </button>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- بطاقة النتائج -->
+                <div class="card results-card">
+                    <div class="card-header">
+                        <h2><i class="fas fa-chart-pie"></i> نتائج الحساب</h2>
+                    </div>
+                    <div class="card-body">
+                        <div class="result-item">
+                            <div class="result-icon">
+                                <i class="fas fa-bolt"></i>
+                            </div>
+                            <div class="result-content">
+                                <span class="result-label">الاستهلاك اليومي</span>
+                                <span class="result-value" id="daily-consumption">0 ك.و.س</span>
+                            </div>
+                        </div>
+
+                        <div class="result-item">
+                            <div class="result-icon">
+                                <i class="fas fa-calendar-week"></i>
+                            </div>
+                            <div class="result-content">
+                                <span class="result-label">الاستهلاك الشهري</span>
+                                <span class="result-value" id="monthly-consumption">0 ك.و.س</span>
+                            </div>
+                        </div>
+
+                        <div class="result-item">
+                            <div class="result-icon">
+                                <i class="fas fa-money-bill-wave"></i>
+                            </div>
+                            <div class="result-content">
+                                <span class="result-label">التكلفة الشهرية</span>
+                                <span class="result-value" id="monthly-cost">0 ريال</span>
+                            </div>
+                        </div>
+
+                        <div class="progress-container">
+                            <div class="progress-label">
+                                <span>مستوى الاستهلاك</span>
+                                <span id="consumption-level">منخفض</span>
+                            </div>
+                            <div class="progress-bar">
+                                <div class="progress-fill" id="consumption-progress"></div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- بطاقة الرسم البياني -->
+                <div class="card chart-card">
+                    <div class="card-header">
+                        <h2><i class="fas fa-chart-bar"></i> التحليل البياني</h2>
+                        <div class="chart-actions">
+                            <button class="btn btn-sm btn-outline" id="daily-chart">يومي</button>
+                            <button class="btn btn-sm btn-outline active" id="monthly-chart">شهري</button>
+                            <button class="btn btn-sm btn-outline" id="yearly-chart">سنوي</button>
+                        </div>
+                    </div>
+                    <div class="card-body">
+                        <canvas id="consumptionChart"></canvas>
+                    </div>
+                </div>
+
+                <!-- بطاقة الأجهزة الشائعة -->
+                <div class="card devices-card">
+                    <div class="card-header">
+                        <h2><i class="fas fa-plug"></i> الأجهزة الشائعة</h2>
+                    </div>
+                    <div class="card-body">
+                        <div class="devices-grid">
+                            <div class="device-item" data-device="fridge">
+                                <i class="fas fa-refrigerator"></i>
+                                <span>ثلاجة</span>
+                            </div>
+                            <div class="device-item" data-device="ac">
+                                <i class="fas fa-wind"></i>
+                                <span>مكيف هواء</span>
+                            </div>
+                            <div class="device-item" data-device="tv">
+                                <i class="fas fa-tv"></i>
+                                <span>تلفزيون</span>
+                            </div>
+                            <div class="device-item" data-device="washing">
+                                <i class="fas fa-washing-machine"></i>
+                                <span>غسالة</span>
+                            </div>
+                            <div class="device-item" data-device="heater">
+                                <i class="fas fa-water"></i>
+                                <span>سخان ماء</span>
+                            </div>
+                            <div class="device-item" data-device="light">
+                                <i class="fas fa-lightbulb"></i>
+                                <span>إضاءة</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </main>
+
+        <!-- تذييل الصفحة -->
+        <footer class="app-footer">
+            <div class="footer-content">
+                <div class="footer-section">
+                    <h3>عن النظام</h3>
+                    <p>نظام متكامل لحساب وتحليل استهلاك الطاقة الكهربائية للمنازل والمؤسسات.</p>
+                </div>
+                <div class="footer-section">
+                    <h3>روابط سريعة</h3>
+                    <ul>
+                        <li><a href="#">الرئيسية</a></li>
+                        <li><a href="#">التقارير</a></li>
+                        <li><a href="#">الإعدادات</a></li>
+                        <li><a href="#">المساعدة</a></li>
+                    </ul>
+                </div>
+                <div class="footer-section">
+                    <h3>اتصل بنا</h3>
+                    <p><i class="fas fa-envelope"></i> info@energy-system.com</p>
+                    <p><i class="fas fa-phone"></i> +966 12 345 6789</p>
+                </div>
+            </div>
+            <div class="footer-bottom">
+                <p>جميع الحقوق محفوظة &copy; 2023 نظام مراقبة الطاقة</p>
+                <div class="social-icons">
+                    <a href="#"><i class="fab fa-twitter"></i></a>
+                    <a href="#"><i class="fab fa-facebook"></i></a>
+                    <a href="#"><i class="fab fa-linkedin"></i></a>
+                </div>
+            </div>
+        </footer>
+    </div>
+
+    <script src="firebase-config.js"></script>
+    <script src="auth.js"></script>
+    <script src="script.js"></script>
+    <script src="dashboard.js"></script>
+</body>
+  </html>
